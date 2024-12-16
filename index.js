@@ -8,7 +8,11 @@ const app = express()
 const prot = process.env.PROT || 5000;
 
 app.use(cors({
-  origin: ['http://localhost:5174'],
+  origin: [
+    'http://localhost:5174',
+    'https://job-protal-925b2.web.app',
+    'https://job-protal-925b2.firebaseapp.com'
+  ],
   credentials: true
 }))
 app.use(express.json())
@@ -22,12 +26,12 @@ const verifyToken = (req, res, next) => {
   }
 
   // verify Token
-  jwt.verify(token, process.env.TOKEN_ACCESS, (err,decoded)=>{
-    if(err){
-      return res.status(401).send({message:'unaajsdfljd'})
+  jwt.verify(token, process.env.TOKEN_ACCESS, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: 'unaajsdfljd' })
     }
-    
-    req.user=decoded;
+
+    req.user = decoded;
     console.log(req.user.userEmail);
     next()
   })
@@ -49,7 +53,8 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
+
     const jobCollection = client.db('Job-Protal').collection('jobs');
     const jobApplyCollection = client.db('Job-Protal').collection('job-apply');
 
@@ -59,14 +64,16 @@ async function run() {
       const token = jwt.sign(user, process.env.TOKEN_ACCESS, { expiresIn: '5h' })
       res.cookie('token', token, {
         httpOnly: true,
-        cousur: false
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
       })
         .send({ success: true })
     });
     app.post('/logOut', (req, res) => {
       res.clearCookie('token', {
         httpOnly: true,
-        cousur: false
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
       })
         .send({ success: true })
     })
@@ -166,8 +173,8 @@ async function run() {
       res.send(resut)
     })
 
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     //  await client.close();
